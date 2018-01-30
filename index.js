@@ -45,25 +45,32 @@ class TexturePackerPlugin {
         if (!err) {
           const png = await imagemin.buffer(buf, { use: [optipng()] });
           const name = `${crypto.createHash('md5').update(png).digest('hex')}.png`;
-          assets[name] = {
-            source: () => png,
-            size: () => png.length,
-          };
-          json.metadata = {
-            format: 3,
-            realTextureFileName: name,
-            textureFileName: name,
-            size: `{${atlas.bitmap.width},${atlas.bitmap.height}}`,
-          };
-          const txt = Buffer.from(plist.build(json));
-          assets[`${crypto.createHash('md5').update(txt).digest('hex')}.plist`] = {
-            source: () => txt,
-            size: () => txt.length,
-          };
+          if (name !== this.lastName) {
+            this.lastName = name;
+            assets[name] = {
+              source: () => png,
+              size: () => png.length,
+            };
+            json.metadata = {
+              format: 3,
+              realTextureFileName: name,
+              textureFileName: name,
+              size: `{${atlas.bitmap.width},${atlas.bitmap.height}}`,
+            };
+            const txt = Buffer.from(plist.build(json));
+            assets[`${crypto.createHash('md5').update(txt).digest('hex')}.plist`] = {
+              source: () => txt,
+              size: () => txt.length,
+            };
+          }
         }
         callback(err);
       });
     });
+  }
+
+  static loader(options) {
+    return { loader: require.resolve('./loader'), options };
   }
 }
 
