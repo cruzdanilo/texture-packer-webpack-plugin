@@ -1,6 +1,6 @@
 {
   "name": "texture-packer-webpack-plugin",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "texture packer plugin for webpack",
   "main": "index.js",
   "repository": "cruzdanilo/texture-packer-webpack-plugin",
@@ -30,9 +30,9 @@
     "plist": "^2.1.0"
   },
   "devDependencies": {
-    "eslint": "^4.16.0",
+    "eslint": "^4.18.1",
     "eslint-config-airbnb-base": "^12.1.0",
-    "eslint-plugin-import": "^2.8.0"
+    "eslint-plugin-import": "^2.9.0"
   },
   "eslintConfig": {
     "extends": "airbnb-base"

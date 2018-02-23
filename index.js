@@ -7,12 +7,12 @@ const optipng = require('imagemin-optipng');
 const plist = require('plist');
 
 class TexturePackerPlugin {
-  constructor(options = { ext: '.png' }) {
+  constructor(options = {}) {
     this.options = options;
   }
 
   apply(compiler) {
-    compiler.plugin('emit', async (compilation, callback) => {
+    compiler.hooks.emit.tapAsync('TexturePackerPlugin', async (compilation, callback) => {
       const { assets } = compilation;
       const textures = {};
       const packer = new MaxRectsPacker(2048, 2048, 1, {
@@ -21,7 +21,7 @@ class TexturePackerPlugin {
         square: false,
       });
       await Promise.all(Object.entries(assets).map(async ([f, v]) => {
-        if (path.extname(f) !== this.options.ext) return;
+        if (path.extname(f) !== '.png') return;
         delete assets[f];
         const name = path.basename(f);
         const t = await Jimp.read(v.source());
@@ -43,11 +43,12 @@ class TexturePackerPlugin {
       });
       atlas.getBuffer(Jimp.MIME_PNG, async (err, buf) => {
         if (!err) {
+          const outputPath = this.options.outputPath || '';
           const png = await imagemin.buffer(buf, { use: [optipng()] });
           const name = `${crypto.createHash('md5').update(png).digest('hex')}.png`;
           if (name !== this.lastName) {
             this.lastName = name;
-            assets[name] = {
+            assets[path.join(outputPath, name)] = {
               source: () => png,
               size: () => png.length,
             };
@@ -58,7 +59,10 @@ class TexturePackerPlugin {
               size: `{${atlas.bitmap.width},${atlas.bitmap.height}}`,
             };
             const txt = Buffer.from(plist.build(json));
-            assets[`${crypto.createHash('md5').update(txt).digest('hex')}.plist`] = {
+            assets[path.join(
+              outputPath,
+              `${crypto.createHash('md5').update(txt).digest('hex')}.plist`,
+            )] = {
               source: () => txt,
               size: () => txt.length,
             };

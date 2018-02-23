@@ -1,8 +1,10 @@
+const path = require('path');
 const loaderUtils = require('loader-utils');
 
 module.exports = function loader(content) {
+  const options = loaderUtils.getOptions(this) || {};
   const name = loaderUtils.interpolateName(this, '[name].[ext]', { content });
-  this.emitFile(name, content);
+  this.emitFile(path.join(options.outputPath || '', name), content);
   return `module.exports = ${JSON.stringify(`#${name}`)};`;
 };
 
