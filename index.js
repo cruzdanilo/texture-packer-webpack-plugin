@@ -14,20 +14,23 @@ class TexturePackerPlugin {
   apply(compiler) {
     compiler.hooks.emit.tapAsync('TexturePackerPlugin', async (compilation, callback) => {
       const { assets } = compilation;
-      const textures = {};
       const packer = new MaxRectsPacker(2048, 2048, 1, {
         smart: true,
         pot: false,
         square: false,
       });
-      await Promise.all(Object.entries(assets).map(async ([f, v]) => {
-        if (path.extname(f) !== '.png') return;
-        delete assets[f];
-        const name = path.basename(f);
-        const t = await Jimp.read(v.source());
-        packer.add(t.bitmap.width, t.bitmap.height, { name });
-        textures[name] = t;
-      }));
+      const textures = await Object.entries(assets).sort((a, b) =>
+        a[0].localeCompare(b[0])).reduce(async (promise, [file, source]) => {
+        const res = await promise;
+        if (path.extname(file) === '.png') {
+          delete assets[file];
+          const name = path.basename(file);
+          const texture = await Jimp.read(source.source());
+          packer.add(texture.bitmap.width, texture.bitmap.height, { name });
+          res[name] = texture;
+        }
+        return res;
+      }, Promise.resolve({}));
       const atlas = new Jimp(packer.bins[0].width, packer.bins[0].height);
       const json = { frames: {} };
       packer.bins[0].rects.forEach((r) => {
