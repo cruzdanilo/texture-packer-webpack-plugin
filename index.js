@@ -19,18 +19,22 @@ class TexturePackerPlugin {
         pot: false,
         square: false,
       });
-      const textures = await Object.entries(assets).sort((a, b) =>
-        a[0].localeCompare(b[0])).reduce(async (promise, [file, source]) => {
-        const res = await promise;
-        if (path.extname(file) === '.png') {
-          delete assets[file];
-          const name = path.basename(file);
-          const texture = await Jimp.read(source.source());
-          packer.add(texture.bitmap.width, texture.bitmap.height, { name });
-          res[name] = texture;
-        }
-        return res;
-      }, Promise.resolve({}));
+      const textures = await Object.entries(assets).sort((a, b) => a[0].localeCompare(b[0]))
+        .reduce(async (promise, [file, source]) => {
+          const res = await promise;
+          if (path.extname(file) === '.png') {
+            delete assets[file];
+            const name = path.basename(file);
+            const texture = await Jimp.read(source.source());
+            packer.add(texture.bitmap.width, texture.bitmap.height, { name });
+            res[name] = texture;
+          }
+          return res;
+        }, Promise.resolve({}));
+      if (!packer.bins.length) {
+        callback();
+        return;
+      }
       const atlas = new Jimp(packer.bins[0].width, packer.bins[0].height);
       const json = { frames: {} };
       packer.bins[0].rects.forEach((r) => {
