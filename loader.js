@@ -5,7 +5,7 @@ module.exports = function loader(content) {
   const options = loaderUtils.getOptions(this) || {};
   const name = loaderUtils.interpolateName(this, '[name].[ext]', { content });
   this.emitFile(path.join(options.outputPath || '', name), content);
-  return `module.exports = ${JSON.stringify(`#${name}`)};`;
+  return `export default ${JSON.stringify(`#${name}`)};`;
 };
 
 module.exports.raw = true;
