@@ -12,7 +12,7 @@ class TexturePackerPlugin {
   }
 
   apply(compiler) {
-    compiler.hooks.emit.tapAsync('TexturePackerPlugin', async (compilation, callback) => {
+    compiler.hooks.emit.tapPromise('TexturePackerPlugin', async (compilation) => {
       const { assets } = compilation;
       const packer = new MaxRectsPacker(2048, 2048, 1, {
         smart: true,
@@ -31,10 +31,7 @@ class TexturePackerPlugin {
           }
           return res;
         }, Promise.resolve({}));
-      if (!packer.bins.length) {
-        callback();
-        return;
-      }
+      if (!packer.bins.length) return;
       const atlas = new Jimp(packer.bins[0].width, packer.bins[0].height);
       const json = { frames: {} };
       packer.bins[0].rects.forEach((r) => {
@@ -48,38 +45,37 @@ class TexturePackerPlugin {
           atlas.setPixelColor(t.getPixelColor(x, y), x + r.x, y + r.y);
         });
       });
-      atlas.getBuffer(Jimp.MIME_PNG, async (err, buf) => {
-        if (!err) {
-          const outputPath = this.options.outputPath || '';
-          const png = await imagemin.buffer(buf, { use: [optipng()] });
-          const name = `atlas.${crypto.createHash('md5').update(png).digest('hex').substr(0, 6)}.png`;
-          if (name !== this.lastName) {
-            this.lastName = name;
-            const pngPath = path.join(outputPath, name);
-            assets[pngPath] = {
-              source: () => png,
-              size: () => png.length,
-            };
-            json.metadata = {
-              format: 3,
-              realTextureFileName: name,
-              textureFileName: name,
-              size: `{${atlas.bitmap.width},${atlas.bitmap.height}}`,
-            };
-            const txt = Buffer.from(plist.build(json));
-            const plistPath = path.join(
-              outputPath,
-              `atlas.${crypto.createHash('md5').update(txt).digest('hex').substr(0, 6)}.plist`,
-            );
-            assets[plistPath] = {
-              source: () => txt,
-              size: () => txt.length,
-            };
-            this.output = { png: pngPath, plist: plistPath };
-          }
+      await new Promise((resolve, reject) => atlas.getBuffer(Jimp.MIME_PNG, async (err, buf) => {
+        if (err) reject(err);
+        const outputPath = this.options.outputPath || '';
+        const png = await imagemin.buffer(buf, { use: [optipng()] });
+        const name = `atlas.${crypto.createHash('md5').update(png).digest('hex').substr(0, 6)}.png`;
+        if (name !== this.lastName) {
+          this.lastName = name;
+          const pngPath = path.join(outputPath, name);
+          assets[pngPath] = {
+            source: () => png,
+            size: () => png.length,
+          };
+          json.metadata = {
+            format: 3,
+            realTextureFileName: name,
+            textureFileName: name,
+            size: `{${atlas.bitmap.width},${atlas.bitmap.height}}`,
+          };
+          const txt = Buffer.from(plist.build(json));
+          const plistPath = path.join(
+            outputPath,
+            `atlas.${crypto.createHash('md5').update(txt).digest('hex').substr(0, 6)}.plist`,
+          );
+          assets[plistPath] = {
+            source: () => txt,
+            size: () => txt.length,
+          };
+          this.output = { png: pngPath, plist: plistPath };
         }
-        callback(err);
-      });
+        resolve();
+      }));
     });
   }
 
