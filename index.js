@@ -52,7 +52,7 @@ class TexturePackerPlugin {
         if (!err) {
           const outputPath = this.options.outputPath || '';
           const png = await imagemin.buffer(buf, { use: [optipng()] });
-          const name = `${crypto.createHash('md5').update(png).digest('hex')}.png`;
+          const name = `atlas.${crypto.createHash('md5').update(png).digest('hex').substr(0, 6)}.png`;
           if (name !== this.lastName) {
             this.lastName = name;
             const pngPath = path.join(outputPath, name);
@@ -69,7 +69,7 @@ class TexturePackerPlugin {
             const txt = Buffer.from(plist.build(json));
             const plistPath = path.join(
               outputPath,
-              `${crypto.createHash('md5').update(txt).digest('hex')}.plist`,
+              `atlas.${crypto.createHash('md5').update(txt).digest('hex').substr(0, 6)}.plist`,
             );
             assets[plistPath] = {
               source: () => txt,
